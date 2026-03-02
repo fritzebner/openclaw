@@ -1,9 +1,9 @@
 import type { OpenClawConfig } from "../config/config.js";
+import type { ModelCatalogEntry } from "./model-catalog.js";
 import { resolveAgentModelPrimaryValue, toAgentModelListLike } from "../config/model-input.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveAgentConfig, resolveAgentEffectiveModelPrimary } from "./agent-scope.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
-import type { ModelCatalogEntry } from "./model-catalog.js";
 import { splitTrailingAuthProfile } from "./model-ref-profile.js";
 import { normalizeGoogleModelId } from "./models-config.providers.js";
 
@@ -14,7 +14,15 @@ export type ModelRef = {
   model: string;
 };
 
-export type ThinkLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive" | "auto";
+export type ThinkLevel =
+  | "off"
+  | "minimal"
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh"
+  | "adaptive"
+  | "auto";
 
 export type ModelAliasIndex = {
   byAlias: Map<string, { alias: string; ref: ModelRef }>;
@@ -550,7 +558,8 @@ export function resolveThinkingDefault(params: {
     perModelThinking === "medium" ||
     perModelThinking === "high" ||
     perModelThinking === "xhigh" ||
-    perModelThinking === "adaptive"
+    perModelThinking === "adaptive" ||
+    perModelThinking === "auto"
   ) {
     return perModelThinking;
   }
@@ -572,7 +581,10 @@ export function resolveThinkingDefault(params: {
   // Don't auto-promote thinking for pass-through routing models.
   // These models route to a downstream model; forcing reasoning_effort here
   // overrides the router's own complexity-based model selection.
-  if (candidate?.reasoning && !PASSTHROUGH_ROUTER_MODELS.has(params.model)) {
+  if (
+    candidate?.reasoning &&
+    !PASSTHROUGH_ROUTER_MODELS.has(modelKey(params.provider, params.model))
+  ) {
     return "low";
   }
   return "off";

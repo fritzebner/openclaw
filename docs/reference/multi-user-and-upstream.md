@@ -29,18 +29,22 @@ If you add or change **code** in OpenClaw (extensions, skills, system prompt, GC
 
 1. **Fork** the repo (e.g. `openclaw/openclaw` → `GIDR-AI/openclaw`).
 2. **Add upstream** and create a branch for your customizations:
+
    ```bash
    git remote add upstream https://github.com/openclaw/openclaw.git
    git fetch upstream
    git checkout -b deploy/gidr   # or main, or a release branch
    ```
+
 3. **Apply your changes** on that branch (extensions, skills, config defaults, docs). Prefer extensions and skills over core changes so merges stay clean.
 4. **Deploy from your fork** on the VM (clone your fork and branch; build/run Docker from there). Your openclaw-starter config still points at the same gateway; only the **binary/image** comes from your fork.
 5. **Keep up to date** by merging (or rebasing) upstream into your branch:
+
    ```bash
    git fetch upstream
    git merge upstream/main   # or: git rebase upstream/main
    ```
+
    Resolve conflicts (often in `src/agents/system-prompt.ts` or other files you touched), run tests, then push.
 
 Full steps and scope: [Fork and deploy plan](/reference/fork-and-deploy-plan).

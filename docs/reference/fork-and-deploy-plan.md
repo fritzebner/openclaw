@@ -47,34 +47,44 @@ Only the following should be **added or changed** in the fork. Everything else s
 
 1. **Fork** the OpenClaw repo (e.g. `openclaw/openclaw` → `YOUR_ORG/openclaw` or your user fork). Use GitHub (or your Git host) “Fork” and ensure you have push access.
 2. **Clone the fork** locally (replace with your fork URL and branch name):
+
    ```bash
    git clone https://github.com/YOUR_ORG/openclaw.git
    cd openclaw
    ```
+
 3. **Add upstream** so you can pull updates later:
+
    ```bash
    git remote add upstream https://github.com/openclaw/openclaw.git
    git fetch upstream
    ```
+
 4. **Create a branch** for your deployment line (e.g. `deploy/gidr-demo` or `main-custom`):
+
    ```bash
    git checkout -b deploy/gidr-demo
    ```
+
 5. **Apply your changes** to this branch:
    - Ensure all items in the “Scope of customizations” table above are present (extensions, skills, system-prompt tweaks, GCP example doc, this plan).
    - If you are starting from a fresh clone of the fork, re-apply or cherry-pick the same commits you used in the main repo (or copy the changed files).
 6. **Commit and push** the branch to the fork:
+
    ```bash
    git add -A
    git status   # sanity check
-   git commit -m "Add GIDR MCP extension, firstlight skill, GCP example, fork-and-deploy plan"
+   git commit -m “Add GIDR MCP extension, firstlight skill, GCP example, fork-and-deploy plan”
    git push -u origin deploy/gidr-demo
    ```
+
 7. **(Optional)** Tag a release for deploy (e.g. `v2026.2.1-gidr.1`):
+
    ```bash
    git tag v2026.2.1-gidr.1
    git push origin v2026.2.1-gidr.1
    ```
+
    Deployment can then use this tag for reproducibility.
 
 ---
@@ -84,15 +94,18 @@ Only the following should be **added or changed** in the fork. Everything else s
 When you want to pull in upstream changes:
 
 1. **Fetch and merge** (or rebase) from upstream:
+
    ```bash
    git fetch upstream
    git merge upstream/main   # or: git rebase upstream/main
    ```
+
 2. **Resolve conflicts** if any. Most will be in:
    - `src/agents/system-prompt.ts` (tool list / summaries)
    - Any other file upstream changed that you also changed.
 3. **Re-run your tests and a quick deploy test** (e.g. build, start gateway, smoke test).
 4. **Push** the updated branch (and optionally a new tag):
+
    ```bash
    git push origin deploy/gidr-demo
    # optional: git tag v2026.2.1-gidr.2 && git push origin v2026.2.1-gidr.2
@@ -111,11 +124,13 @@ Choose one of the following (or both). The goal is: **one canonical way** to go 
   - Clone URL: `https://github.com/YOUR_ORG/openclaw.git`
   - Branch or tag: `deploy/gidr-demo` or `v2026.2.1-gidr.1`
 - **Example** (for gidr-demo, openclaw-gateway): On the VM after SSH, run:
+
   ```bash
   git clone --branch deploy/gidr-demo https://github.com/YOUR_ORG/openclaw.git openclaw
   cd openclaw
   # then continue with: create ~/.openclaw, ~/.openclaw/workspace, .env, docker-compose as in the GCP doc
   ```
+
 - **Secrets**: Document that `GIDR_MCP_URL` and `GIDR_API_KEY` (or `GIDR_API_KEY_FILE`) must be set (e.g. in `.env` or the environment) for the Firstlight tools to work. Optionally reference a secrets manager (e.g. GCP Secret Manager) without embedding secrets in the doc.
 
 ### Option B — Deploy script in the fork
@@ -141,11 +156,13 @@ For each environment (e.g. gidr-demo / openclaw-gateway):
 - [ ] **Fork**: Clone uses the fork URL and the chosen branch/tag.
 - [ ] **Env**: `GIDR_MCP_URL` and `GIDR_API_KEY` (or `GIDR_API_KEY_FILE`) set where the Gateway runs (e.g. in `.env` for Docker).
 - [ ] **Config**: Agent has the GIDR tools allowlisted, e.g. in `openclaw.yml`:
+
   ```yaml
   tools:
     alsoAllow: ["search_troubleshooting", "retrieval_firstlight_noc"]
   # or: alsoAllow: ["gidr-mcp"]
   ```
+
 - [ ] **Plugins**: Extension `gidr-mcp` is enabled (default if present in repo; ensure it’s not disabled in config).
 - [ ] **Access**: SSH tunnel (or controlled port exposure) for Control UI; gateway token pasted once in the UI.
 
