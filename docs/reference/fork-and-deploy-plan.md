@@ -38,6 +38,7 @@ Only the following should be **added or changed** in the fork. Everything else s
 | **Deploy helper** (optional)   | Script or one-page doc that clones the fork and runs the GCP VM flow                                            | See step 5                                                                                                                                                                              |
 | **Multi-instance maintenance** | `platforms/gcp-vm/manage-multi.sh` + README “Maintaining many instances”                                        | Deploy many OpenClaw containers side-by-side on one VM; one script to start/stop/restart/logs/pull/exec all                                                                             |
 | **Customer starter template**  | `customer-starter/`                                                                                             | One repo as starting point for a new customer: multi-user context, Telegram + WhatsApp user onboarding; publish as standalone repo, clone and customize per customer (e.g. FirstLight). |
+| **Observability**              | `extensions/langsmith-tracer/`                                                                                  | LangSmith tracing for the agent loop (LLM calls, tool calls, token usage). Opt-in via `LANGSMITH_API_KEY`; no-op when absent. See `extensions/langsmith-tracer/README.md`.              |
 
 **Do not** change core under `src/` beyond the listed system-prompt edits unless necessary. Prefer extensions and skills so upstream merges stay clean.
 
