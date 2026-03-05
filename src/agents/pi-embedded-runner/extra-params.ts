@@ -518,7 +518,7 @@ function mapThinkingLevelToOpenRouterReasoningEffort(
   if (thinkingLevel === "off") {
     return "none";
   }
-  if (thinkingLevel === "adaptive") {
+  if (thinkingLevel === "adaptive" || thinkingLevel === "auto") {
     return "medium";
   }
   return thinkingLevel;
