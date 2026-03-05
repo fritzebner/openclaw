@@ -1,0 +1,13 @@
+{
+  "name": "@openclaw/langsmith-tracer",
+  "version": "1.0.0",
+  "description": "LangSmith tracing extension for OpenClaw",
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "langsmith": "^0.5.7"
+  },
+  "devDependencies": {
+    "openclaw": "*"
+  }
+}
