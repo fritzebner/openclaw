@@ -324,7 +324,9 @@ export type PluginHookName =
   | "subagent_spawned"
   | "subagent_ended"
   | "gateway_start"
-  | "gateway_stop";
+  | "gateway_stop"
+  | "sdk_llm_start"
+  | "sdk_llm_end";
 
 // Agent context shared across agent hooks
 export type PluginHookAgentContext = {
@@ -405,6 +407,26 @@ export type PluginHookAgentEndEvent = {
   success: boolean;
   error?: string;
   durationMs?: number;
+};
+
+// sdk_llm_start hook — fires for EACH LLM API call within the SDK's tool loop
+export type PluginHookSdkLlmStartEvent = {
+  provider?: string;
+  model?: string;
+};
+
+// sdk_llm_end hook — fires when each SDK LLM call completes, with per-call usage
+export type PluginHookSdkLlmEndEvent = {
+  provider?: string;
+  model?: string;
+  stopReason?: string;
+  usage?: {
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
+    total?: number;
+  };
 };
 
 // Compaction hooks
@@ -755,6 +777,14 @@ export type PluginHookHandlerMap = {
   gateway_stop: (
     event: PluginHookGatewayStopEvent,
     ctx: PluginHookGatewayContext,
+  ) => Promise<void> | void;
+  sdk_llm_start: (
+    event: PluginHookSdkLlmStartEvent,
+    ctx: PluginHookAgentContext,
+  ) => Promise<void> | void;
+  sdk_llm_end: (
+    event: PluginHookSdkLlmEndEvent,
+    ctx: PluginHookAgentContext,
   ) => Promise<void> | void;
 };
 

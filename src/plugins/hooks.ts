@@ -49,6 +49,8 @@ import type {
   PluginHookToolResultPersistResult,
   PluginHookBeforeMessageWriteEvent,
   PluginHookBeforeMessageWriteResult,
+  PluginHookSdkLlmStartEvent,
+  PluginHookSdkLlmEndEvent,
 } from "./types.js";
 
 // Re-export types for consumers
@@ -93,6 +95,8 @@ export type {
   PluginHookGatewayContext,
   PluginHookGatewayStartEvent,
   PluginHookGatewayStopEvent,
+  PluginHookSdkLlmStartEvent,
+  PluginHookSdkLlmEndEvent,
 };
 
 export type HookRunnerLogger = {
@@ -337,6 +341,30 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
    */
   async function runLlmOutput(event: PluginHookLlmOutputEvent, ctx: PluginHookAgentContext) {
     return runVoidHook("llm_output", event, ctx);
+  }
+
+  /**
+   * Run sdk_llm_start hook.
+   * Fires for each LLM API call within the SDK's tool loop.
+   * Runs in parallel (fire-and-forget).
+   */
+  async function runSdkLlmStart(
+    event: PluginHookSdkLlmStartEvent,
+    ctx: PluginHookAgentContext,
+  ): Promise<void> {
+    return runVoidHook("sdk_llm_start", event, ctx);
+  }
+
+  /**
+   * Run sdk_llm_end hook.
+   * Fires when each SDK LLM call completes, with per-call usage data.
+   * Runs in parallel (fire-and-forget).
+   */
+  async function runSdkLlmEnd(
+    event: PluginHookSdkLlmEndEvent,
+    ctx: PluginHookAgentContext,
+  ): Promise<void> {
+    return runVoidHook("sdk_llm_end", event, ctx);
   }
 
   /**
@@ -741,6 +769,9 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     runSubagentDeliveryTarget,
     runSubagentSpawned,
     runSubagentEnded,
+    // SDK LLM hooks (per-call granularity)
+    runSdkLlmStart,
+    runSdkLlmEnd,
     // Gateway hooks
     runGatewayStart,
     runGatewayStop,

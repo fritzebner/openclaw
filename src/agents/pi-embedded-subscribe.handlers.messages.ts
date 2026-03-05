@@ -3,6 +3,7 @@ import { parseReplyDirectives } from "../auto-reply/reply/reply-directives.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
 import { createInlineCodeState } from "../markdown/code-spans.js";
+import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import {
   isMessagingToolDuplicateNormalized,
   normalizeTextForComparison,
@@ -17,6 +18,7 @@ import {
   formatReasoningMessage,
   promoteThinkingTagsToBlocks,
 } from "./pi-embedded-utils.js";
+import { normalizeUsage, type UsageLike } from "./usage.js";
 
 const stripTrailingDirective = (text: string): string => {
   const openIndex = text.lastIndexOf("[[");
@@ -73,6 +75,23 @@ export function handleMessageStart(
   ctx.resetAssistantMessageState(ctx.state.assistantTexts.length);
   // Use assistant message_start as the earliest "writing" signal for typing.
   void ctx.params.onAssistantMessageStart?.();
+
+  // Fire sdk_llm_start hook for each LLM API call (enables per-call tracing).
+  const hookRunner = ctx.hookRunner ?? getGlobalHookRunner();
+  if (hookRunner?.hasHooks("sdk_llm_start")) {
+    const typedMsg = msg as unknown as Record<string, unknown>;
+    void hookRunner
+      .runSdkLlmStart(
+        {
+          provider: typeof typedMsg.provider === "string" ? typedMsg.provider : undefined,
+          model: typeof typedMsg.model === "string" ? typedMsg.model : undefined,
+        },
+        { agentId: ctx.params.agentId, sessionKey: ctx.params.sessionKey },
+      )
+      .catch((err) => {
+        ctx.log.debug(`sdk_llm_start hook failed: ${String(err)}`);
+      });
+  }
 }
 
 export function handleMessageUpdate(
@@ -262,6 +281,34 @@ export function handleMessageEnd(
   ctx.noteLastAssistant(assistantMessage);
   ctx.recordAssistantUsage((assistantMessage as { usage?: unknown }).usage);
   promoteThinkingTagsToBlocks(assistantMessage);
+
+  // Fire sdk_llm_end hook for each completed LLM call (enables per-call tracing).
+  const hookRunner = ctx.hookRunner ?? getGlobalHookRunner();
+  if (hookRunner?.hasHooks("sdk_llm_end")) {
+    const typedMsg = assistantMessage as unknown as Record<string, unknown>;
+    const usage = normalizeUsage(typedMsg.usage as UsageLike | undefined);
+    void hookRunner
+      .runSdkLlmEnd(
+        {
+          provider: typeof typedMsg.provider === "string" ? typedMsg.provider : undefined,
+          model: typeof typedMsg.model === "string" ? typedMsg.model : undefined,
+          stopReason: typeof typedMsg.stopReason === "string" ? typedMsg.stopReason : undefined,
+          usage: usage
+            ? {
+                input: usage.input,
+                output: usage.output,
+                cacheRead: usage.cacheRead,
+                cacheWrite: usage.cacheWrite,
+                total: usage.total,
+              }
+            : undefined,
+        },
+        { agentId: ctx.params.agentId, sessionKey: ctx.params.sessionKey },
+      )
+      .catch((err) => {
+        ctx.log.debug(`sdk_llm_end hook failed: ${String(err)}`);
+      });
+  }
 
   const rawText = extractAssistantText(assistantMessage);
   appendRawStream({
