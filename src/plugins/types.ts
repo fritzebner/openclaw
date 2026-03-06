@@ -420,6 +420,8 @@ export type PluginHookSdkLlmEndEvent = {
   provider?: string;
   model?: string;
   stopReason?: string;
+  /** Full text of the assistant response for this LLM call. */
+  responseText?: string;
   usage?: {
     input?: number;
     output?: number;

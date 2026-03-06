@@ -69,6 +69,7 @@ export type SdkLlmEndEvent = {
   provider?: string;
   model?: string;
   stopReason?: string;
+  responseText?: string;
   usage?: {
     input?: number;
     output?: number;
@@ -138,6 +139,8 @@ type PendingTool = {
 
 type SessionTrace = {
   rootRun: RunNode;
+  /** Messages from before_prompt_build — used as LLM inputs in sdk_llm_start. */
+  inputMessages?: unknown[];
   /** The LLM call currently in progress; null between turns. */
   currentLlmRun: RunNode | null;
   /**
@@ -260,6 +263,7 @@ export class LangSmithTracer {
 
       this.sessions.set(sessionId, {
         rootRun,
+        inputMessages: Array.isArray(event.messages) ? event.messages : undefined,
         currentLlmRun: null,
         pendingToolStack: [],
         pendingLlmCallCount: 0,
@@ -291,7 +295,7 @@ export class LangSmithTracer {
       const llmRun = session.rootRun.createChild({
         name: `${event.provider ?? "unknown"}/${event.model ?? "unknown"}`,
         run_type: "llm",
-        inputs: {},
+        inputs: { messages: session.inputMessages ?? [] },
       });
       await llmRun.postRun();
 
@@ -313,6 +317,7 @@ export class LangSmithTracer {
       session.currentLlmRun = null;
 
       await llmRun.end({
+        generations: event.responseText ? [[{ text: event.responseText }]] : [],
         prompt_tokens: event.usage?.input ?? 0,
         completion_tokens: event.usage?.output ?? 0,
         total_tokens: event.usage?.total ?? 0,

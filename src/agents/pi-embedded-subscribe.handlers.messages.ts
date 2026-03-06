@@ -293,6 +293,7 @@ export function handleMessageEnd(
           provider: typeof typedMsg.provider === "string" ? typedMsg.provider : undefined,
           model: typeof typedMsg.model === "string" ? typedMsg.model : undefined,
           stopReason: typeof typedMsg.stopReason === "string" ? typedMsg.stopReason : undefined,
+          responseText: extractAssistantText(assistantMessage) || undefined,
           usage: usage
             ? {
                 input: usage.input,
