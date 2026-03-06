@@ -41,6 +41,12 @@ describe("failover-error", () => {
     expect(resolveFailoverReasonFromError({ message: "reason: abort" })).toBe("timeout");
   });
 
+  it("infers unknown from unhandled stop reason: error (OpenRouter backend error)", () => {
+    expect(resolveFailoverReasonFromError({ message: "Unhandled stop reason: error" })).toBe(
+      "unknown",
+    );
+  });
+
   it("treats AbortError reason=abort as timeout", () => {
     const err = Object.assign(new Error("aborted"), {
       name: "AbortError",

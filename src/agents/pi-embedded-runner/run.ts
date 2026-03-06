@@ -653,6 +653,10 @@ export async function runEmbeddedPiAgent(
       let lastRunPromptUsage: ReturnType<typeof normalizeUsage> | undefined;
       let autoCompactionCount = 0;
       let runLoopIterations = 0;
+      // Retry budget for unknown/transient provider backend errors (e.g. OpenRouter finish_reason: "error").
+      // One retry on the same profile before giving up; capped independently of MAX_RUN_LOOP_ITERATIONS.
+      let transientRetryCount = 0;
+      const MAX_TRANSIENT_RETRIES = 1;
       const maybeMarkAuthProfileFailure = async (failure: {
         profileId?: string;
         reason?: Parameters<typeof markAuthProfileFailure>[0]["reason"] | null;
@@ -660,7 +664,9 @@ export async function runEmbeddedPiAgent(
         agentDir?: RunEmbeddedPiAgentParams["agentDir"];
       }) => {
         const { profileId, reason } = failure;
-        if (!profileId || !reason || reason === "timeout") {
+        // Transient errors (timeout, unknown) should not put a profile into cooldown —
+        // the failure is with the provider backend, not the profile credentials.
+        if (!profileId || !reason || reason === "timeout" || reason === "unknown") {
           return;
         }
         await markAuthProfileFailure({
@@ -1131,6 +1137,21 @@ export async function runEmbeddedPiAgent(
             log.warn(
               `Profile ${lastProfileId} rejected image payload${details ? ` (${details})` : ""}.`,
             );
+          }
+
+          // Retry once on unknown/transient provider backend errors (e.g. OpenRouter
+          // finish_reason: "error") before attempting profile rotation or giving up.
+          // These errors typically resolve immediately on retry.
+          if (
+            !aborted &&
+            assistantFailoverReason === "unknown" &&
+            transientRetryCount < MAX_TRANSIENT_RETRIES
+          ) {
+            transientRetryCount += 1;
+            log.warn(
+              `Transient provider error on ${provider}/${modelId}, retrying (attempt ${transientRetryCount}/${MAX_TRANSIENT_RETRIES})...`,
+            );
+            continue;
           }
 
           // Rotate on timeout to try another account/model path in this turn,

@@ -538,6 +538,12 @@ export function formatAssistantErrorText(
     return "LLM request timed out.";
   }
 
+  // Provider returned an unrecognised stop reason (e.g. OpenRouter finish_reason: "error").
+  // Don't surface internal pi-ai error strings to users.
+  if (/\bunhandled stop reason:/i.test(raw)) {
+    return "LLM request failed.";
+  }
+
   if (isBillingErrorMessage(raw)) {
     return formatBillingErrorMessage(opts?.provider, opts?.model ?? msg.model);
   }
@@ -946,6 +952,11 @@ export function classifyFailoverReason(raw: string): FailoverReason | null {
   }
   if (isAuthErrorMessage(raw)) {
     return "auth";
+  }
+  // Provider returned an unknown stop reason (e.g. OpenRouter finish_reason: "error").
+  // Classify as retryable but don't misrepresent the cause as a timeout.
+  if (/\bunhandled stop reason:/i.test(raw)) {
+    return "unknown";
   }
   return null;
 }
