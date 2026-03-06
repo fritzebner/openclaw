@@ -141,18 +141,14 @@ describe("LangSmithTracer", () => {
     expect(tracer.activeSessionCount).toBe(0);
   });
 
-  // ── before_agent_start model-resolve phase is skipped ─────────────────────
-  it("skips before_agent_start when messages is undefined (model-resolve phase)", async () => {
+  // ── before_prompt_build always creates a session ──────────────────────────
+  // We now use before_prompt_build (not before_agent_start) which always fires
+  // with messages. onAgentStart creates a session on every call.
+  it("creates a session on onAgentStart (before_prompt_build always has messages)", async () => {
     const rootRun = makeFakeRun();
     const tracer = makeTracer(rootRun);
 
-    // First fire: no messages — should be ignored
-    await tracer.onAgentStart("sess-skip", { prompt: "hello" });
-    expect(rootRun.postRun).not.toHaveBeenCalled();
-    expect(tracer.activeSessionCount).toBe(0);
-
-    // Second fire: with messages — should create root run
-    await tracer.onAgentStart("sess-skip", { prompt: "hello", messages: [] });
+    await tracer.onAgentStart("sess-create", { prompt: "hello", messages: [] });
     expect(rootRun.postRun).toHaveBeenCalledTimes(1);
     expect(tracer.activeSessionCount).toBe(1);
   });

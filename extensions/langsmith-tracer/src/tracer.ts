@@ -5,7 +5,7 @@
  *
  * Each agent turn (one user message → one reply) produces this structure:
  *
- *   openclaw-agent  [chain]          ← before_agent_start … agent_end
+ *   openclaw-agent  [chain]          ← before_prompt_build … agent_end
  *     anthropic/claude-…  [llm]      ← sdk_llm_start … sdk_llm_end (call 1)
  *     bash  [tool]                   ← before_tool_call … after_tool_call
  *     read_file  [tool]
@@ -27,7 +27,9 @@
  * - `before_tool_call` / `after_tool_call`: Fire for each tool call within the
  *   SDK's tool loop.
  *
- * - `before_agent_start` / `agent_end`: Fire at the boundaries of each attempt().
+ * - `before_prompt_build` / `agent_end`: Fire at the boundaries of each attempt().
+ *   We use `before_prompt_build` (not `before_agent_start`) because it fires
+ *   exactly once per attempt with messages. See index.ts for details.
  *
  * ## Deferred close (agent_end / sdk_llm_end race)
  *
@@ -221,13 +223,6 @@ export class LangSmithTracer {
     try {
       // Skip heartbeat/cron runs to reduce noise.
       if (this._isHeartbeat(event.prompt)) {
-        return;
-      }
-
-      // OpenClaw fires before_agent_start TWICE per turn:
-      //   1. Model-resolve phase (event.messages === undefined) — skip
-      //   2. Prompt-build phase (event.messages is an array) — create root run
-      if (event.messages === undefined) {
         return;
       }
 

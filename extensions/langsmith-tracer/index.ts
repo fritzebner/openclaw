@@ -24,6 +24,14 @@
  *
  * ## Hook strategy
  *
+ * Session creation uses `before_prompt_build` — fires exactly once per attempt
+ * with `{ prompt, messages }`, independently of other plugins' return values.
+ *
+ * We deliberately avoid `before_agent_start` for session creation: it fires twice
+ * per turn (model-resolve phase without messages, then prompt-build phase with
+ * messages), and the second fire is skipped if any other plugin already returned
+ * a result from the first fire (e.g. user-context-inject returning prependContext).
+ *
  * Primary LLM tracking uses `sdk_llm_start` / `sdk_llm_end` hooks — these fire
  * for EACH LLM API call within the SDK's tool loop, giving full visibility into
  * multi-step turns (LLM1 → tool → LLM2 → response).
@@ -70,9 +78,13 @@ export default {
       `langsmith-tracer: tracing enabled → project "${cfg.project}" at ${cfg.endpoint}`,
     );
 
-    // ── before_agent_start ──────────────────────────────────────────────────
+    // ── before_prompt_build ─────────────────────────────────────────────────
     // Creates the root "chain" run for the full agent turn.
-    api.on("before_agent_start", async (event, ctx) => {
+    // We use before_prompt_build (not before_agent_start) because it fires
+    // exactly once per attempt with messages, independently of other plugins'
+    // return values. before_agent_start's second fire (with messages) is
+    // skipped if any plugin already returned a result in the first fire.
+    api.on("before_prompt_build", async (event, ctx) => {
       const key = ctx.agentId ?? ctx.sessionId ?? "unknown";
       await tracer.onAgentStart(key, event);
     });
